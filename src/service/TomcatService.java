@@ -41,7 +41,8 @@ public class TomcatService extends AgentDAO implements AgentInterface, Runnable 
 								Runtime.getRuntime().exec("rm /usr/local/tomcat/webapp/" + webs[1]);
 								Runtime.getRuntime().exec("mv -r ~/backup/" + webs[0] + " /usr/local/tomcat/webapp/");
 							}
-						}else {
+						}else if(array[1].equals("config")){
+							
 						}
 					}else {
 					}
