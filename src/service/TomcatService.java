@@ -10,18 +10,25 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 
 import org.dom4j.Document;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
+import org.hyperic.sigar.CpuInfo;
+import org.hyperic.sigar.CpuPerc;
+import org.hyperic.sigar.Mem;
+import org.hyperic.sigar.Sigar;
+import org.hyperic.sigar.SigarException;
 
 import util.ZKUtil;
 import dao.AgentDAO;
 
 public class TomcatService extends AgentDAO implements AgentInterface {
-	//000
+	//
 	public static final int NGINX_NMUBERS = 6;
 	public static final int[] TOMCAT_NUMBERS = {4, 3, 5 , 5, 10, 2};
 	public Process process;
@@ -36,8 +43,7 @@ public class TomcatService extends AgentDAO implements AgentInterface {
 			try{
 				if (isExist("/header") != null) {
 					znodeContent = readData("/header").split(";");
-					process = Runtime.getRuntime().exec("hostname");
-					hostname = new BufferedReader(new InputStreamReader(process.getInputStream())).readLine();
+					hostname = InetAddress.getLocalHost().getHostName();
 					if(znodeContent[0].equals(hostname)){
 						if(znodeContent[1].equals("update")){
 							parameters = znodeContent[3].split("->");
@@ -45,7 +51,7 @@ public class TomcatService extends AgentDAO implements AgentInterface {
 							Runtime.getRuntime().exec("rm /usr/local/tomcat/webapps/" + parameters[1]);
 							Runtime.getRuntime().exec("cp ~/tmp/" + parameters[1] + " /usr/local/tomcat/webapps/");
 							if(isDeployMentSuccess() == true){
-								ZKUtil.failedInfo(hostname, "1,,");//CPU,RAM
+								
 								sendToOthers();
 							}else {//rollback
 								Runtime.getRuntime().exec("rm /usr/local/tomcat/webapps/" + parameters[1]);
@@ -58,20 +64,59 @@ public class TomcatService extends AgentDAO implements AgentInterface {
 								if(modifyResult == true) {
 									Runtime.getRuntime().exec("sh /usr/local/tomcat/bin/shutdown.sh");
 									Runtime.getRuntime().exec("sh /usr/local/tomcat/bin/startup.sh");
-									ZKUtil.failedInfo(hostname, "1,,");//CPU,RAM
+									ZKUtil.writeIntoRedis(hostname, "1,,");//CPU,RAM
 									break;
 								}
 							}
 						}
 					}
 				}
+				
+				ZKUtil.writeIntoRedis(hostname, isTomcatAlive() + "," + sysInfo());//CPU,RAM
+						
 				Thread.sleep(3000);
 			} catch(Exception e){
 				
 			}
 		}
 	}
-
+	public int isTomcatAlive(){
+		try {
+			Process process = Runtime.getRuntime().exec("ps -ef | grep tomcat");
+			BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+			//判断过程
+			return 1;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return 0;
+		
+	}
+	public String sysInfo(){
+		Sigar sigar = new Sigar();
+		try {
+			CpuInfo infos[] = sigar.getCpuInfoList();
+			CpuPerc[] cpuList = sigar.getCpuPercList();
+			double sum = 0;
+			for (int i = 0; i < infos.length; i++) {// 不管是单块CPU还是多CPU都适用
+				sum += cpuList[i].getCombined();
+			}
+			int cpuPerc = (int)(sum/infos.length*100);
+			Mem mem = sigar.getMem();
+			int memPerc = 0;
+			if (mem != null && mem.getTotal() != 0) {
+				memPerc = (int)(mem.getUsed()/mem.getTotal()*100);	
+			}
+			InetAddress addr = InetAddress.getLocalHost();
+			return cpuPerc + "%," + memPerc + "%," + addr.getHostAddress();
+			
+		} catch (SigarException e) {
+			e.printStackTrace();
+		}catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 	public boolean isDeployMentSuccess(){
 		try{
 			for (int i = 0; i < 3; i++) {
@@ -91,7 +136,7 @@ public class TomcatService extends AgentDAO implements AgentInterface {
 				
 			}
 		}catch(Exception e){
-			ZKUtil.failedInfo(hostname, e.getClass());
+			ZKUtil.writeIntoRedis(hostname, e.getClass());
 		}
 		return deployResult;
 	}

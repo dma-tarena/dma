@@ -26,9 +26,9 @@ public class ZKUtil implements Watcher{
 			connectedSemaphore.await();
 			return zk;
 		} catch (InterruptedException e) {
-			failedInfo("zkConnection", e.getClass());
+			writeIntoRedis("zkConnection", e.getClass());
 		} catch (IOException e) {
-			failedInfo("zkConnection", e.getCause());
+			writeIntoRedis("zkConnection", e.getCause());
 		}
 		return null;
 	}
@@ -45,12 +45,12 @@ public class ZKUtil implements Watcher{
 			try {
 				zk.close();
 			} catch (InterruptedException e) {
-				failedInfo("zkConnection", e.getClass());
+				writeIntoRedis("zkConnection", e.getClass());
 			}
 		}
 	}
 	
-	public static void failedInfo(String key, Object obj){
+	public static void writeIntoRedis(String key, Object obj){
 		Date date = new Date();
 		Jedis jedis = new Jedis(host, port ); 
 		String exceptionInfo = date.toString()+": "+obj.toString();
