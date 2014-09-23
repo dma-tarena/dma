@@ -5,12 +5,12 @@ package service;
  */
 import idao.AgentInterface;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.List;
 
@@ -80,16 +80,16 @@ public class TomcatService extends AgentDAO implements AgentInterface {
 			}
 		}
 	}
-	public int isTomcatAlive(){
+	public boolean isTomcatAlive(){
 		try {
-			Process process = Runtime.getRuntime().exec("ps -ef | grep tomcat");
-			BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
-			//判断过程
-			return 1;
+			String uri = "http://localhost:8080/dma/heartbeat.html";
+			HttpURLConnection conn = (HttpURLConnection) new URL(uri).openConnection();
+			conn.connect();
+			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return 0;
+		return false;
 		
 	}
 	public String sysInfo(){
@@ -98,7 +98,7 @@ public class TomcatService extends AgentDAO implements AgentInterface {
 			CpuInfo infos[] = sigar.getCpuInfoList();
 			CpuPerc[] cpuList = sigar.getCpuPercList();
 			double sum = 0;
-			for (int i = 0; i < infos.length; i++) {// 不管是单块CPU还是多CPU都适用
+			for (int i = 0; i < infos.length; i++) {
 				sum += cpuList[i].getCombined();
 			}
 			int cpuPerc = (int)(sum/infos.length*100);
@@ -122,13 +122,13 @@ public class TomcatService extends AgentDAO implements AgentInterface {
 			for (int i = 0; i < 3; i++) {
 				for (int j = 0; j < 3; j++) {
 					Thread.sleep(3000);
-					File file =  new File("/usr/local/tomcat/webapps/"+parameters[1]);
-					if(file.isDirectory()==true){
+					File file =  new File("/usr/local/tomcat/webapps/" + parameters[1]);
+					if(file.isDirectory() == true){
 						deployResult = true;
 						break;
 					}
 				}
-				if(deployResult==true){
+				if(deployResult == true){
 					break;
 				}
 				Runtime.getRuntime().exec("rm /usr/local/tomcat/webapps/" + parameters[1]);
@@ -151,7 +151,7 @@ public class TomcatService extends AgentDAO implements AgentInterface {
 	public boolean modifyXml(String path, String node, String attr, String oldValue, String newValue ) {
 		try {
 			Document doc = new SAXReader().read(new File(path));
-			List<Element> list = doc.selectNodes("//"+node+"[@"+attr+"='"+oldValue+"']");
+			List<Element> list = doc.selectNodes("//" + node + "[@" + attr + "='" + oldValue + "']");
 			for (Element element : list) {
 				element.attribute(attr).setValue(newValue);
 			}

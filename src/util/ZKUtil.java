@@ -13,10 +13,10 @@ import redis.clients.jedis.Jedis;
 
 public class ZKUtil implements Watcher{
 	
-	public static final String host = "RedisIP";
+	public static final String host = "redisIP";
 	public static final int port = 6379;
 	public static final int SESSION_TIMEOUT = 10000;
-	public static final String CONNECTION_STRING = "slave1:2181,slave2:2181,slave3:2181";
+	public static final String CONNECTION_STRING = "zookeeper1:2181,zookeeper2:2181,zookeeper3:2181";
 	private static CountDownLatch connectedSemaphore = new CountDownLatch(1);
 	
 	public static ZooKeeper createConnection(String connectString, int sessionTimeout) {

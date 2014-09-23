@@ -10,7 +10,6 @@ import util.ZKUtil;
 
 public class AgentDAO {
 	ZooKeeper zk = null;
-	
 
 	public AgentDAO() {
 		zk = ZKUtil.createConnection(ZKUtil.CONNECTION_STRING, ZKUtil.SESSION_TIMEOUT);
@@ -26,7 +25,6 @@ public class AgentDAO {
 	}
 
 	public boolean createPath(String path, String data) {
-		
 		try {
 			zk.create(path, data.getBytes(), Ids.OPEN_ACL_UNSAFE,
 					CreateMode.EPHEMERAL);
