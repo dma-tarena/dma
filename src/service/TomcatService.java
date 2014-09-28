@@ -64,7 +64,6 @@ public class TomcatService extends AgentDAO implements AgentInterface {
 								if(modifyResult == true) {
 									Runtime.getRuntime().exec("sh /usr/local/tomcat/bin/shutdown.sh");
 									Runtime.getRuntime().exec("sh /usr/local/tomcat/bin/startup.sh");
-									ZKUtil.writeIntoRedis(hostname, "1,,");//CPU,RAM
 									break;
 								}
 							}
